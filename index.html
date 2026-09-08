@@ -10,26 +10,22 @@
 		<script defer src="assets/js/script.js"></script>
 	</head>
 	<body>
-		<main class="redirect-page" data-local-launcher data-product="cortex" data-default-port="7331">
+		<main class="redirect-page" data-local-launcher data-product="cortex" data-default-host="localhost" data-default-port="7331">
 			<section class="redirect-card" aria-labelledby="redirect-title">
-				<p class="eyebrow">MY CORTEX</p>
-				<h1 id="redirect-title">Open your local Cortex.</h1>
-				<p class="redirect-lede">This page remembers the local port used by Cortex in this browser and opens your local installation.</p>
+				<h1 id="redirect-title">Cortex</h1>
 				<div class="redirect-error" data-redirect-error role="alert" hidden></div>
 				<form class="redirect-form" data-redirect-form novalidate>
-					<label for="cortex-local-port">Local Cortex port</label>
-					<div class="redirect-port-row">
-						<span>http://localhost:</span>
-						<input id="cortex-local-port" name="port" type="number" min="1" max="65535" step="1" inputmode="numeric" autocomplete="off" value="7331" aria-describedby="redirect-port-help">
+					<label for="cortex-host">Domain or IP</label>
+					<input id="cortex-host" name="host" type="text" inputmode="url" autocomplete="url" value="localhost" placeholder="localhost or https://cortex.example.com" spellcheck="false">
+					<label for="cortex-port">Port</label>
+					<input id="cortex-port" name="port" type="number" min="1" max="65535" step="1" inputmode="numeric" autocomplete="off" value="7331">
+					<div class="redirect-actions redirect-actions-inline">
+						<button class="primary" type="submit">Save</button>
+						<button class="secondary" type="button" data-reset-target>Use defaults</button>
 					</div>
-					<p id="redirect-port-help" class="redirect-help">Use the port configured for your local Cortex service. The default is <code>7331</code>.</p>
-					<div class="redirect-actions">
-						<button class="primary" type="submit">Save and open Cortex</button>
-						<button class="secondary" type="button" data-reset-port>Use default port</button>
-					</div>
+					<button class="secondary open-button" type="button" data-open-target>Open Cortex</button>
 				</form>
 				<p class="redirect-status" data-redirect-status>Preparing Cortex…</p>
-				<p class="redirect-note">Your port preference is stored only in this browser. No Cortex configuration or credentials are sent to crtx.dev.</p>
 			</section>
 		</main>
 	</body>

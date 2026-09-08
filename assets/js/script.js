@@ -11,46 +11,78 @@
     const params=new URLSearchParams(raw);
     return raw==='config'||params.has('config')?'config':'invalid';
   }
+  function validHost(value){
+    const raw=String(value??'').trim();
+    if(!raw||/\s/.test(raw))return null;
+    try{
+      const explicit=/^[a-z][a-z\d+.-]*:\/\//i.test(raw);
+      const hostname=explicit?new URL(raw).hostname:raw.replace(/^\[|\]$/g,'');
+      const local=hostname==='localhost'||hostname.endsWith('.localhost')||/^\d{1,3}(?:\.\d{1,3}){3}$/.test(hostname)||hostname.includes(':');
+      const url=new URL(explicit?raw:`${local?'http':'https'}://${raw}`);
+      if(!/^https?:$/.test(url.protocol)||url.username||url.password||url.search||url.hash)return null;
+      return url;
+    }catch{return null}
+  }
   function init(){
     const root=document.querySelector('[data-local-launcher]');
     if(!root)return;
     const product=root.dataset.product;
+    const defaultHost=root.dataset.defaultHost;
     const defaultPort=validPort(root.dataset.defaultPort);
-    const key=`${product}-local-port`;
+    const hostKey=`${product}-host`;
+    const portKey=`${product}-local-port`;
     const form=root.querySelector('[data-redirect-form]');
-    const input=form?.querySelector('input[name="port"]');
+    const hostInput=form?.querySelector('input[name="host"]');
+    const portInput=form?.querySelector('input[name="port"]');
     const error=root.querySelector('[data-redirect-error]');
     const status=root.querySelector('[data-redirect-status]');
-    const reset=root.querySelector('[data-reset-port]');
+    const reset=root.querySelector('[data-reset-target]');
+    const openButton=root.querySelector('[data-open-target]');
+    const saveButton=form?.querySelector('button[type="submit"]');
     const mode=queryMode(window.location.search);
-    const read=()=>{try{return validPort(localStorage.getItem(key))}catch{return null}};
-    const save=port=>{try{localStorage.setItem(key,String(port));return true}catch{return false}};
-    const open=port=>window.location.replace(`http://localhost:${port}/`);
-    const showError=message=>{root.classList.add('redirect-config-mode');if(error){error.textContent=message;error.hidden=false}if(input){input.focus();input.select()}};
+    const read=()=>{try{return {host:localStorage.getItem(hostKey)||defaultHost,port:validPort(localStorage.getItem(portKey))||defaultPort}}catch{return {host:defaultHost,port:defaultPort}}};
+    const save=target=>{try{localStorage.setItem(hostKey,target.host);localStorage.setItem(portKey,String(target.port));return true}catch{return false}};
+    const targetFromInputs=()=>{
+      const url=validHost(hostInput?.value);
+      const port=validPort(portInput?.value);
+      if(!url||!port)return null;
+      url.port=String(port);
+      return {host:hostInput.value.trim(),port,url:url.toString()};
+    };
+    const open=target=>window.location.replace(target.url);
+    const showError=message=>{root.classList.add('redirect-config-mode');if(error){error.textContent=message;error.hidden=false}};
     const stored=read();
     if(mode==='launch'){
-      const port=stored||defaultPort;
-      if(input)input.value=String(port);
-      if(status)status.textContent=`Opening ${product} on localhost:${port}…`;
-      open(port);
+      const url=validHost(stored.host);
+      if(url){url.port=String(stored.port);open({url:url.toString()});return}
+      const fallback=validHost(defaultHost);
+      fallback.port=String(defaultPort);
+      open({url:fallback.toString()});
       return;
     }
     root.classList.add('redirect-config-mode');
-    if(input)input.value=String(stored||defaultPort);
-    if(mode==='invalid')showError('The redirect parameters were not recognised. Use ?config to change the local port.');
+    if(hostInput)hostInput.value=stored.host;
+    if(portInput)portInput.value=String(stored.port);
+    if(mode==='invalid')showError('Invalid link. Configure a Cortex address below.');
     form?.addEventListener('submit',event=>{
       event.preventDefault();
-      const port=validPort(input?.value);
-      if(!port){showError('That is not a valid TCP port. Enter a whole number from 1 to 65535.');return}
+      const target=targetFromInputs();
+      if(!target){showError('Enter a valid domain or IP and a port from 1 to 65535.');return}
       if(error)error.hidden=true;
-      save(port);
-      open(port);
+      save(target);
+      if(saveButton){saveButton.textContent='Saved';setTimeout(()=>saveButton.textContent='Save',1200)}
+    });
+    openButton?.addEventListener('click',()=>{
+      const target=targetFromInputs();
+      if(!target){showError('Enter a valid domain or IP and a port from 1 to 65535.');return}
+      open(target);
     });
     reset?.addEventListener('click',()=>{
-      if(input)input.value=String(defaultPort);
-      try{localStorage.removeItem(key)}catch{}
+      if(hostInput)hostInput.value=defaultHost;
+      if(portInput)portInput.value=String(defaultPort);
+      try{localStorage.removeItem(hostKey);localStorage.removeItem(portKey)}catch{}
       if(error)error.hidden=true;
-      input?.focus();
+      hostInput?.focus();
     });
   }
   document.addEventListener('DOMContentLoaded',init);
