@@ -5,6 +5,8 @@ const html = fs.readFileSync('public/index.html', 'utf8');
 const script = fs.readFileSync('public/assets/js/script.js', 'utf8');
 
 assert.match(html, /data-local-launcher/);
+assert.match(html, /<title>Cortex<\/title>/);
+assert.match(html, /assets\/images\/favicon\.svg/);
 assert.match(html, /data-default-host="localhost"/);
 assert.match(html, /name="host"/);
 assert.match(html, /data-open-target/);
