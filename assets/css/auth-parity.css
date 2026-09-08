@@ -1,4 +1,4 @@
 .redirect-form button.primary,
-.redirect-form button.secondary { border: 1px solid #3a443f; background: #202522; color: var(--text); box-shadow: none; }
+.redirect-form button.secondary { min-height: auto; padding: 7px 11px; border: 1px solid #3a443f; background: #202522; color: var(--text); box-shadow: none; font: 400 13px/normal var(--sans); }
 .redirect-form button.primary:hover,
 .redirect-form button.secondary:hover { border-color: #59655f; background: #272d2a; }
