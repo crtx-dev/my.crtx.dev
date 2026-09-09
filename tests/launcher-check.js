@@ -1,24 +1,21 @@
-const fs = require('node:fs');
-const assert = require('node:assert/strict');
-
-const html = fs.readFileSync('public/index.html', 'utf8');
-const script = fs.readFileSync('public/assets/js/script.js', 'utf8');
-
-assert.match(html, /data-local-launcher/);
-assert.match(html, /<title>Cortex<\/title>/);
-assert.match(html, /assets\/images\/favicon\.svg/);
-assert.match(html, /data-default-host="localhost"/);
-assert.match(html, /name="host"/);
-assert.match(html, /data-open-target/);
-assert.match(html, />Save</);
-assert.doesNotMatch(html, /MY CORTEX|Open your local Cortex|Save and open Cortex/);
-assert.match(html, /assets\/css\/style\.css/);
-assert.match(html, /assets\/js\/script\.js/);
-assert.match(script, /localStorage\.getItem\(hostKey\)/);
-assert.match(script, /localStorage\.setItem\(hostKey,target\.host\)/);
-assert.match(script, /localStorage\.setItem\(portKey,String\(target\.port\)\)/);
-assert.match(script, /window\.location\.replace\(target\.url\)/);
-assert.match(script, /params\.has\('config'\)/);
-assert.match(script, /if\(mode==='launch'\)/);
-
-console.log('launcher contracts passed');
+const fs=require('node:fs'),assert=require('node:assert/strict');
+const html=fs.readFileSync('public/index.html','utf8'),js=fs.readFileSync('public/assets/js/script.js','utf8');
+assert.match(html,/<title>Cortex<\/title>/);
+assert.match(html,/data-instance-launcher/);
+assert.match(html,/data-product="cortex"/);
+assert.match(html,/data-instance-grid/);
+assert.match(html,/data-open-config/);
+assert.match(html,/data-instance-form/);
+assert.match(html,/data-instance-table/);
+assert.match(html,/data-delete-selected/);
+assert.match(html,/data-select-page/);
+assert.match(html,/data-page-input/);
+assert.match(js,/instances-v1/);
+assert.match(js,/instances.length===0/);
+assert.match(js,/instances.length===1/);
+assert.match(js,/location.replace\(endpoint\(instances\[0\]\)\)/);
+assert.match(js,/LAUNCH_PAGE_SIZE=6,CONFIG_PAGE_SIZE=10/);
+assert.match(js,/crypto.randomUUID/);
+assert.match(js,/Delete \${selected.size} selected/);
+assert.doesNotMatch(js,/-host`|-local-port|watchpost-main-host/);
+console.log('Cortex instance launcher contracts passed');
