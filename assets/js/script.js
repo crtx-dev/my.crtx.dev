@@ -1,89 +1,32 @@
 (()=>{
-  function validPort(value){
-    const text=String(value??'').trim();
-    if(!/^\d+$/.test(text))return null;
-    const port=Number(text);
-    return Number.isInteger(port)&&port>=1&&port<=65535?port:null;
-  }
-  function queryMode(search){
-    const raw=String(search||'').replace(/^\?/,'');
-    if(!raw)return 'launch';
-    const params=new URLSearchParams(raw);
-    return raw==='config'||params.has('config')?'config':'invalid';
-  }
-  function validHost(value){
-    const raw=String(value??'').trim();
-    if(!raw||/\s/.test(raw))return null;
-    try{
-      const explicit=/^[a-z][a-z\d+.-]*:\/\//i.test(raw);
-      const hostname=explicit?new URL(raw).hostname:raw.replace(/^\[|\]$/g,'');
-      const local=hostname==='localhost'||hostname.endsWith('.localhost')||/^\d{1,3}(?:\.\d{1,3}){3}$/.test(hostname)||hostname.includes(':');
-      const url=new URL(explicit?raw:`${local?'http':'https'}://${raw}`);
-      if(!/^https?:$/.test(url.protocol)||url.username||url.password||url.search||url.hash)return null;
-      return url;
-    }catch{return null}
-  }
+  const LAUNCH_PAGE_SIZE=6,CONFIG_PAGE_SIZE=10;
+  const portValue=value=>{const text=String(value??'').trim();if(!text)return null;if(!/^\d+$/.test(text))return false;const port=Number(text);return Number.isInteger(port)&&port>=1&&port<=65535?port:false};
+  const domainValue=value=>{const raw=String(value??'').trim();if(!raw||/\s/.test(raw))return null;try{const explicit=/^[a-z][a-z\d+.-]*:\/\//i.test(raw),probe=explicit?new URL(raw):new URL(`https://${raw}`);if(!/^https?:$/.test(probe.protocol)||probe.username||probe.password||probe.search||probe.hash||probe.pathname!=='/')return null;return raw}catch{return null}};
+  const endpoint=instance=>{const raw=instance.domain,explicit=/^[a-z][a-z\d+.-]*:\/\//i.test(raw);let url;if(explicit)url=new URL(raw);else{const host=raw.replace(/^\[|\]$/g,''),local=host==='localhost'||host.endsWith('.localhost')||/^\d{1,3}(?:\.\d{1,3}){3}$/.test(host)||host.includes(':');url=new URL(`${local?'http':'https'}://${raw}`)}if(instance.port)url.port=String(instance.port);return url.toString()};
+  const esc=value=>String(value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   function init(){
-    const root=document.querySelector('[data-local-launcher]');
-    if(!root)return;
-    const product=root.dataset.product;
-    const defaultHost=root.dataset.defaultHost;
-    const defaultPort=validPort(root.dataset.defaultPort);
-    const hostKey=`${product}-host`;
-    const portKey=`${product}-local-port`;
-    const form=root.querySelector('[data-redirect-form]');
-    const hostInput=form?.querySelector('input[name="host"]');
-    const portInput=form?.querySelector('input[name="port"]');
-    const error=root.querySelector('[data-redirect-error]');
-    const status=root.querySelector('[data-redirect-status]');
-    const reset=root.querySelector('[data-reset-target]');
-    const openButton=root.querySelector('[data-open-target]');
-    const saveButton=form?.querySelector('button[type="submit"]');
-    const mode=queryMode(window.location.search);
-    const read=()=>{try{return {host:localStorage.getItem(hostKey)||defaultHost,port:validPort(localStorage.getItem(portKey))||defaultPort}}catch{return {host:defaultHost,port:defaultPort}}};
-    const save=target=>{try{localStorage.setItem(hostKey,target.host);localStorage.setItem(portKey,String(target.port));return true}catch{return false}};
-    const targetFromInputs=()=>{
-      const url=validHost(hostInput?.value);
-      const port=validPort(portInput?.value);
-      if(!url||!port)return null;
-      url.port=String(port);
-      return {host:hostInput.value.trim(),port,url:url.toString()};
-    };
-    const open=target=>window.location.replace(target.url);
-    const showError=message=>{root.classList.add('redirect-config-mode');if(error){error.textContent=message;error.hidden=false}};
-    const stored=read();
-    if(mode==='launch'){
-      const url=validHost(stored.host);
-      if(url){url.port=String(stored.port);open({url:url.toString()});return}
-      const fallback=validHost(defaultHost);
-      fallback.port=String(defaultPort);
-      open({url:fallback.toString()});
-      return;
-    }
-    root.classList.add('redirect-config-mode');
-    if(hostInput)hostInput.value=stored.host;
-    if(portInput)portInput.value=String(stored.port);
-    if(mode==='invalid')showError('Invalid link. Configure a Cortex address below.');
-    form?.addEventListener('submit',event=>{
-      event.preventDefault();
-      const target=targetFromInputs();
-      if(!target){showError('Enter a valid domain or IP and a port from 1 to 65535.');return}
-      if(error)error.hidden=true;
-      save(target);
-      if(saveButton){saveButton.textContent='Saved';setTimeout(()=>saveButton.textContent='Save',1200)}
-    });
-    openButton?.addEventListener('click',()=>{
-      const target=targetFromInputs();
-      if(!target){showError('Enter a valid domain or IP and a port from 1 to 65535.');return}
-      open(target);
-    });
-    reset?.addEventListener('click',()=>{
-      if(hostInput)hostInput.value=defaultHost;
-      if(portInput)portInput.value=String(defaultPort);
-      try{localStorage.removeItem(hostKey);localStorage.removeItem(portKey)}catch{}
-      if(error)error.hidden=true;
-      hostInput?.focus();
-    });
+    const root=document.querySelector('[data-instance-launcher]');if(!root)return;
+    const product=root.dataset.product,title=root.dataset.productTitle||product,key=`${product}-instances-v1`;
+    const launcher=root.querySelector('[data-launcher-view]'),config=root.querySelector('[data-config-view]'),grid=root.querySelector('[data-instance-grid]'),tbody=root.querySelector('[data-instance-table]'),empty=root.querySelector('[data-empty]'),count=root.querySelector('[data-instance-count]');
+    const form=root.querySelector('[data-instance-form]'),domain=form.querySelector('[name="domain"]'),port=form.querySelector('[name="port"]'),editId=form.querySelector('[name="edit-id"]'),formTitle=root.querySelector('[data-form-title]'),submit=root.querySelector('[data-submit]'),cancel=root.querySelector('[data-cancel-edit]'),error=root.querySelector('[data-error]'),deleteSelected=root.querySelector('[data-delete-selected]'),selectPage=root.querySelector('[data-select-page]');
+    let instances=[],launchPage=1,configPage=1,selected=new Set();
+    const load=()=>{try{const parsed=JSON.parse(localStorage.getItem(key)||'[]');instances=Array.isArray(parsed)?parsed.filter(item=>item&&typeof item.id==='string'&&domainValue(item.domain)&&(!item.port||portValue(item.port))):[]}catch{instances=[]}};
+    const save=()=>{try{localStorage.setItem(key,JSON.stringify(instances))}catch{showError('Unable to save configuration in this browser.');return false}return true};
+    const showError=message=>{error.textContent=message;error.hidden=false};const clearError=()=>{error.hidden=true;error.textContent=''};
+    const pageCount=(length,size)=>Math.max(1,Math.ceil(length/size));
+    const bindPager=(el,getPage,setPage,total)=>{const pages=pageCount(total,el===root.querySelector('[data-launcher-pager]')?LAUNCH_PAGE_SIZE:CONFIG_PAGE_SIZE),input=el.querySelector('[data-page-input]'),prev=el.querySelector('[data-prev]'),next=el.querySelector('[data-next]');let page=Math.min(Math.max(1,getPage()),pages);setPage(page);input.value=String(page);input.max=String(pages);el.querySelector('[data-page-count]').textContent=String(pages);prev.disabled=page<=1;next.disabled=page>=pages;prev.onclick=()=>{if(page>1){setPage(page-1);render()}};next.onclick=()=>{if(page<pages){setPage(page+1);render()}};input.onchange=()=>{const requested=Math.min(pages,Math.max(1,Number.parseInt(input.value,10)||1));setPage(requested);render()};};
+    const resetForm=()=>{editId.value='';domain.value='';port.value='';formTitle.textContent='Add instance';submit.textContent='Add instance';cancel.hidden=true;clearError()};
+    const showConfig=()=>{launcher.hidden=true;config.hidden=false;history.replaceState(null,'',`${location.pathname}?config`);renderConfig();};
+    const showLauncher=()=>{if(instances.length===0){showConfig();return}if(instances.length===1){location.replace(endpoint(instances[0]));return}config.hidden=true;launcher.hidden=false;history.replaceState(null,'',location.pathname);renderLauncher();};
+    const renderLauncher=()=>{const pages=pageCount(instances.length,LAUNCH_PAGE_SIZE);launchPage=Math.min(launchPage,pages);const start=(launchPage-1)*LAUNCH_PAGE_SIZE;grid.innerHTML=instances.slice(start,start+LAUNCH_PAGE_SIZE).map(item=>`<button class="instance-card" type="button" data-open-id="${esc(item.id)}"><span><strong>${esc(item.domain)}</strong><small>${item.port?`Port ${esc(item.port)}`:'Default port'}</small></span><span class="arrow">›</span></button>`).join('');grid.querySelectorAll('[data-open-id]').forEach(button=>button.onclick=()=>{const item=instances.find(x=>x.id===button.dataset.openId);if(item)location.assign(endpoint(item))});bindPager(root.querySelector('[data-launcher-pager]'),()=>launchPage,v=>launchPage=v,instances.length);};
+    const renderConfig=()=>{count.textContent=String(instances.length);const pages=pageCount(instances.length,CONFIG_PAGE_SIZE);configPage=Math.min(configPage,pages);const start=(configPage-1)*CONFIG_PAGE_SIZE,pageItems=instances.slice(start,start+CONFIG_PAGE_SIZE);tbody.innerHTML=pageItems.map(item=>`<tr><td class="check"><input type="checkbox" data-select-id="${esc(item.id)}" aria-label="Select ${esc(item.domain)}" ${selected.has(item.id)?'checked':''}></td><td class="domain">${esc(item.domain)}</td><td class="port">${item.port?esc(item.port):'—'}</td><td class="actions"><button type="button" data-open-id="${esc(item.id)}">Open</button><button type="button" data-edit-id="${esc(item.id)}">Edit</button></td></tr>`).join('');empty.hidden=instances.length!==0;selectPage.disabled=pageItems.length===0;selectPage.checked=pageItems.length>0&&pageItems.every(item=>selected.has(item.id));selectPage.indeterminate=pageItems.some(item=>selected.has(item.id))&&!selectPage.checked;deleteSelected.disabled=selected.size===0;tbody.querySelectorAll('[data-select-id]').forEach(box=>box.onchange=()=>{box.checked?selected.add(box.dataset.selectId):selected.delete(box.dataset.selectId);renderConfig()});tbody.querySelectorAll('[data-open-id]').forEach(button=>button.onclick=()=>{const item=instances.find(x=>x.id===button.dataset.openId);if(item)location.assign(endpoint(item))});tbody.querySelectorAll('[data-edit-id]').forEach(button=>button.onclick=()=>{const item=instances.find(x=>x.id===button.dataset.editId);if(!item)return;editId.value=item.id;domain.value=item.domain;port.value=item.port||'';formTitle.textContent='Edit instance';submit.textContent='Save changes';cancel.hidden=false;clearError();domain.focus();window.scrollTo({top:0,behavior:'smooth'})});bindPager(root.querySelector('[data-config-pager]'),()=>configPage,v=>configPage=v,instances.length);};
+    const render=()=>{launcher.hidden?renderConfig():renderLauncher()};
+    form.onsubmit=event=>{event.preventDefault();const d=domainValue(domain.value),p=portValue(port.value);if(!d||p===false){showError('Enter a valid domain or IP and, if used, a port from 1 to 65535.');return}const normalized={domain:d,port:p||null};if(editId.value){const index=instances.findIndex(item=>item.id===editId.value);if(index>=0)instances[index]={...instances[index],...normalized}}else{instances.push({id:(crypto.randomUUID?crypto.randomUUID():`${Date.now()}-${Math.random().toString(16).slice(2)}`),...normalized})}if(!save())return;resetForm();configPage=pageCount(instances.length,CONFIG_PAGE_SIZE);renderConfig()};
+    cancel.onclick=resetForm;
+    selectPage.onchange=()=>{const start=(configPage-1)*CONFIG_PAGE_SIZE;instances.slice(start,start+CONFIG_PAGE_SIZE).forEach(item=>selectPage.checked?selected.add(item.id):selected.delete(item.id));renderConfig()};
+    deleteSelected.onclick=()=>{if(!selected.size)return;if(!confirm(`Delete ${selected.size} selected ${selected.size===1?'instance':'instances'}?`))return;instances=instances.filter(item=>!selected.has(item.id));selected.clear();if(save()){configPage=Math.min(configPage,pageCount(instances.length,CONFIG_PAGE_SIZE));resetForm();renderConfig()}};
+    root.querySelector('[data-open-config]').onclick=showConfig;root.querySelector('[data-back-launcher]').onclick=showLauncher;
+    load();const params=new URLSearchParams(location.search),configMode=params.has('config')||String(location.search).replace(/^\?/,'')==='config';if(configMode||instances.length===0)showConfig();else if(instances.length===1)location.replace(endpoint(instances[0]));else{launcher.hidden=false;renderLauncher()}
   }
   document.addEventListener('DOMContentLoaded',init);
 })();

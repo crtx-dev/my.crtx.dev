@@ -8,27 +8,52 @@
 		<title>Cortex</title>
 		<link rel="icon" href="assets/images/favicon.svg" type="image/svg+xml">
 		<link rel="stylesheet" href="assets/css/style.css">
-		<link rel="stylesheet" href="assets/css/auth-parity.css">
 		<script defer src="assets/js/script.js"></script>
 	</head>
 	<body>
-		<main class="redirect-page" data-local-launcher data-product="cortex" data-default-host="localhost" data-default-port="7331">
-			<section class="redirect-card" aria-labelledby="redirect-title">
-				<div class="auth-brand"><span class="mark">C</span><span class="eyebrow">Cortex</span></div>
-				<div class="redirect-error" data-redirect-error role="alert" hidden></div>
-				<form class="redirect-form" data-redirect-form novalidate>
-					<label for="cortex-host">Domain or IP</label>
-					<input id="cortex-host" name="host" type="text" inputmode="url" autocomplete="url" value="localhost" placeholder="localhost or https://cortex.example.com" spellcheck="false">
-					<label for="cortex-port">Port</label>
-					<input id="cortex-port" name="port" type="number" min="1" max="65535" step="1" inputmode="numeric" autocomplete="off" value="7331">
-					<div class="redirect-actions redirect-actions-inline">
-						<button class="primary" type="submit">Save</button>
-						<button class="secondary" type="button" data-reset-target>Use defaults</button>
-					</div>
-					<button class="primary open-button" type="button" data-open-target>Open</button>
-				</form>
-				<p class="redirect-status" data-redirect-status>Preparing Cortex…</p>
-			</section>
+		<main class="instance-app" data-instance-launcher data-product="cortex" data-product-title="Cortex">
+		  <section class="launcher-view" data-launcher-view hidden>
+		    <header class="page-header">
+		      <div class="brand"><span class="brand-mark">C</span><div><h1>Cortex</h1><p>Choose an instance to open.</p></div></div>
+		      <button class="icon-button" type="button" data-open-config aria-label="Configure instances" title="Configure instances">&#9881;</button>
+		    </header>
+		    <div class="instance-grid" data-instance-grid></div>
+		    <nav class="pager" data-launcher-pager aria-label="Instance pages">
+		      <button type="button" data-prev>Prev</button>
+		      <label>Page <input type="number" min="1" step="1" value="1" data-page-input aria-label="Page number"> <span>of <strong data-page-count>1</strong></span></label>
+		      <button type="button" data-next>Next</button>
+		    </nav>
+		  </section>
+		  <section class="config-view" data-config-view hidden>
+		    <header class="page-header">
+		      <div class="brand"><span class="brand-mark">C</span><div><h1>Cortex instances</h1><p>Add and manage the instances available from this launcher.</p></div></div>
+		      <button class="secondary" type="button" data-back-launcher>Launcher</button>
+		    </header>
+		    <form class="instance-form panel" data-instance-form novalidate>
+		      <input type="hidden" name="edit-id">
+		      <div class="form-heading"><h2 data-form-title>Add instance</h2><button class="text-button" type="button" data-cancel-edit hidden>Cancel edit</button></div>
+		      <div class="form-grid">
+		        <label>Domain or IP<input name="domain" type="text" inputmode="url" autocomplete="url" placeholder="localhost or cortex.example.com" spellcheck="false" required></label>
+		        <label>Port <span class="optional">optional</span><input name="port" type="number" min="1" max="65535" step="1" inputmode="numeric" autocomplete="off" placeholder="e.g. 7331"></label>
+		      </div>
+		      <div class="form-footer"><div class="error" data-error role="alert" hidden></div><button class="primary" type="submit" data-submit>Add instance</button></div>
+		    </form>
+		    <section class="panel list-panel">
+		      <div class="table-toolbar"><div><h2>Current instances</h2><p><span data-instance-count>0</span> configured</p></div><button class="danger" type="button" data-delete-selected disabled>Delete selected</button></div>
+		      <div class="table-wrap">
+		        <table>
+		          <thead><tr><th class="check"><input type="checkbox" data-select-page aria-label="Select instances on this page"></th><th>Domain</th><th>Port</th><th class="actions-col">Actions</th></tr></thead>
+		          <tbody data-instance-table></tbody>
+		        </table>
+		        <div class="empty-state" data-empty>No instances configured yet.</div>
+		      </div>
+		      <nav class="pager" data-config-pager aria-label="Configuration pages">
+		        <button type="button" data-prev>Prev</button>
+		        <label>Page <input type="number" min="1" step="1" value="1" data-page-input aria-label="Page number"> <span>of <strong data-page-count>1</strong></span></label>
+		        <button type="button" data-next>Next</button>
+		      </nav>
+		    </section>
+		  </section>
 		</main>
 	</body>
 </html>
