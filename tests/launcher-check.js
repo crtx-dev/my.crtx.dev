@@ -1,5 +1,5 @@
 const fs=require('node:fs'),assert=require('node:assert/strict');
-const html=fs.readFileSync('public/index.html','utf8'),js=fs.readFileSync('public/assets/js/script.js','utf8');
+const html=fs.readFileSync('public/index.html','utf8'),js=fs.readFileSync('public/assets/js/script.js','utf8'),css=fs.readFileSync('public/assets/css/style.css','utf8');
 assert.match(html,/<title>Cortex<\/title>/);
 assert.match(html,/data-instance-launcher/);
 assert.match(html,/data-product="cortex"/);
@@ -16,11 +16,13 @@ assert.match(html,/data-delete-selected/);
 assert.match(html,/data-select-page/);
 assert.match(html,/data-page-input/);
 assert.match(js,/instances-v1/);
+assert.ok(js.includes("DEFAULT_LOCAL_URL='http://localhost:7331/'"));
 assert.match(js,/nameValue/);
 assert.match(js,/name:n,domain:d,port:p\|\|null/);
 assert.match(js,/\$\{esc\(item.name\)\}<\/strong>/);
 assert.match(js,/displayEndpoint\(item\)/);
 assert.match(js,/instances.length===0/);
+assert.match(js,/instances.length===0\)location\.replace\(DEFAULT_LOCAL_URL\)/);
 assert.match(js,/instances.length===1/);
 assert.match(js,/location.replace\(endpoint\(instances\[0\]\)\)/);
 assert.match(js,/LAUNCH_PAGE_SIZE=6,CONFIG_PAGE_SIZE=10/);
@@ -29,4 +31,5 @@ assert.match(js,/Delete \${selected.size} \${selected.size===1\?'instance'\:'ins
 assert.match(js,/openModal/);
 assert.match(js,/data-add-instance/);
 assert.doesNotMatch(js,/-host`|-local-port|watchpost-main-host/);
+assert.match(css,/\.form-grid\{display:grid;grid-template-columns:1fr;gap:12px\}/);
 console.log('Cortex instance launcher contracts passed');
